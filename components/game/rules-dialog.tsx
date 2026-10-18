@@ -47,7 +47,7 @@ export function RulesDialog({
             <h3 className="font-heading text-base text-[#f3e2b3]">A deal, three streets</h3>
             <p>Each player is dealt 7 mini cards. Flop, turn, and river each follow the same five steps.</p>
             <ol className="mt-2 list-decimal space-y-1 pl-5">
-              <li>Mulligan. Two or three players may mulligan once a match, or once a deal if the table chooses that. Four players get one mulligan for the match. Five, six, and seven players do not mulligan. A mulligan throws the mini hand away and draws one fewer card. The vault is never part of it, and you may only do it if you can still pay two cards for every street left.</li>
+              <li>Mulligan. Two, three, and four players get one mulligan for the whole match. Five, six, and seven players do not mulligan. A mulligan throws the mini hand away and draws one fewer card. The vault is never part of it, and you may only do it if you can still pay two cards for every street left.</li>
               <li>Blind. In order from the left of the button, each player plays one mini card face up, from the hand or the vault.</li>
               <li>Reveal. The flop shows three cards, the turn one, the river one.</li>
               <li>Commit. Everyone locks a second mini card face down. They flip together.</li>
@@ -69,8 +69,9 @@ export function RulesDialog({
               After the river, the table starts the final showdown. Mini cards stay hidden. Hole cards
               turn up. Best five from the two hole cards and the five board cards wins the
               deal and banks every mini card still in hand. Everyone else discards those leftovers.
-              Cards already in a vault stay there. If the poker hands tie, the highest hole card wins,
-              and a suit tie breaks toward spades, then hearts, clubs, diamonds.
+              Cards already in a vault stay there. If the poker hands tie, the higher hole card wins.
+              Suits never break that tie. When the hole cards are the same rank, every tied player
+              wins and each one banks the mini cards still in hand.
             </p>
             <p className="mt-2">
               You must play six mini cards over a deal and you were dealt seven. Win the showdown and

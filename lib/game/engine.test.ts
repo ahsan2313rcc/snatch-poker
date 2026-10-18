@@ -57,12 +57,12 @@ function playCheapDeal(state: MatchState, options?: { mulliganSeat?: number; spe
   }
   const showdown = current.showdown;
   expect(showdown).not.toBeNull();
-  const winner = showdown!.winner_seat;
-  expect(showdown!.banked).toBe(1 + (spent[winner] ?? 0) - (mulliganed[winner] ? 1 : 0));
-  expect(showdown!.vp_after[winner]).toBe((startVault[winner] ?? 0) - (spent[winner] ?? 0) + showdown!.banked);
+  const winners = new Set(showdown!.winner_seats);
+  expect(winners.has(showdown!.winner_seat)).toBe(true);
   for (let seat = 0; seat < current.players.length; seat++) {
-    if (seat === winner) continue;
-    expect(showdown!.vp_after[seat]).toBe((startVault[seat] ?? 0) - (spent[seat] ?? 0));
+    const banked = winners.has(seat) ? 1 + (spent[seat] ?? 0) - (mulliganed[seat] ? 1 : 0) : 0;
+    if (seat === showdown!.winner_seat) expect(showdown!.banked).toBe(banked);
+    expect(showdown!.vp_after[seat]).toBe((startVault[seat] ?? 0) - (spent[seat] ?? 0) + banked);
   }
   return current;
 }
@@ -90,8 +90,10 @@ describe("match flow", () => {
   });
 
   it("scales decks, the victory target, and the mulligan", () => {
-    expect(createMatch(config({ player_count: 3 })).vp_target).toBe(5);
-    expect(createMatch(config({ player_count: 3 })).mini_decks_used).toBe(1);
+    const three = createMatch(config({ player_count: 3, mulligan: "per_deal" }));
+    expect(three.vp_target).toBe(5);
+    expect(three.mini_decks_used).toBe(1);
+    expect(three.config.mulligan).toBe("per_match");
     const four = createMatch(config({ player_count: 4, mulligan: "per_deal" }));
     expect(four.vp_target).toBe(3);
     expect(four.mini_decks_used).toBe(1);
@@ -216,7 +218,7 @@ describe("match flow", () => {
     const winner = first.showdown!.winner_seat;
     const second = playCheapDeal(act(first, { type: "CONTINUE" }), { spendReserve: true });
     const showdown = second.showdown!;
-    if (showdown.winner_seat === winner) expect(showdown.vp_after[winner]).toBe(2);
+    if (showdown.winner_seats.includes(winner)) expect(showdown.vp_after[winner]).toBe(2);
     else expect(showdown.vp_after[winner]).toBe(0);
   });
 
@@ -228,9 +230,10 @@ describe("match flow", () => {
     const next = act(match, { type: "CONTINUE" });
     expect(next.players[0]!.has_used_mulligan).toBe(true);
     const reset = createMatch(config({ mulligan: "per_deal", seed: 4 }), { button: 1 });
+    expect(reset.config.mulligan).toBe("per_match");
     const once = playCheapDeal(reset, { mulliganSeat: 0 });
     const again = act(once, { type: "CONTINUE" });
-    expect(again.players[0]!.has_used_mulligan).toBe(false);
+    expect(again.players[0]!.has_used_mulligan).toBe(true);
   });
 
   it("gives the royal-flush bidder the hijack and logs the swap without the discard", () => {
@@ -298,7 +301,44 @@ describe("match flow", () => {
     expect(match.action_log.some((entry) => entry.text.includes("draw"))).toBe(true);
   });
 
-  it("breaks a royal-board showdown on the highest hole card's suit", () => {
+  it("splits a showdown when the hole cards match and ignores suits", () => {
+    const keep = [
+      new Set(["full_9C", "full_8D"]),
+      new Set(["full_9S", "full_8H"]),
+    ];
+    let match = createMatch(config(), {
+      button: 0,
+      board: ["full_AS", "full_KS", "full_QS", "full_JS", "full_10S"],
+      holes: [
+        ["full_9C", "full_8D"],
+        ["full_9S", "full_8H"],
+      ],
+    });
+    while (match.phase !== "SHOWDOWN" && match.phase !== "MATCH_OVER") {
+      if (match.phase === "MULLIGAN") match = act(match, { type: "DECLINE_MULLIGAN", seat: match.actor_seat! });
+      else if (match.phase === "BLIND") {
+        const seat = match.actor_seat!;
+        match = act(match, { type: "BLIND", seat, card_id: lowest(match.players[seat]!.mini_hand).id });
+      } else if (match.phase === "COMMIT") {
+        const seat = match.players.findIndex((_, index) => !match.commits_locked[index]);
+        match = act(match, { type: "COMMIT", seat, card_id: lowest(match.players[seat]!.mini_hand).id });
+      } else if (match.phase === "REVEAL" || match.phase === "FLIP" || match.phase === "RESOLVE") {
+        match = act(match, { type: "ADVANCE" });
+      } else if (match.phase === "HIJACK") match = act(match, { type: "HIJACK_PASS", seat: match.actor_seat! });
+      else if (match.phase === "DISCARD") {
+        const seat = match.players.findIndex((_, index) => !match.discards_locked[index]);
+        const drop = match.players[seat]!.full_hand.find((card) => !keep[seat]!.has(card.id));
+        match = act(match, { type: "DISCARD", seat, card_id: drop!.id });
+      } else if (match.phase === "SHOWDOWN_CALL") match = act(match, { type: "START_SHOWDOWN" });
+    }
+    expect(match.showdown!.winner_seats.sort()).toEqual([0, 1]);
+    expect(match.showdown!.poker_tie).toBe(true);
+    expect(match.players[0]!.reserve_vp_pile.length).toBeGreaterThan(0);
+    expect(match.players[1]!.reserve_vp_pile.length).toBeGreaterThan(0);
+    expect(match.players.every((seat) => seat.mini_hand.length === 0)).toBe(true);
+  });
+
+  it("lets the higher hole card win a tied board without using suits", () => {
     const keep = [
       new Set(["full_9C", "full_8D"]),
       new Set(["full_9S", "full_2C"]),
@@ -332,7 +372,7 @@ describe("match flow", () => {
         match = act(match, { type: "START_SHOWDOWN" });
       }
     }
-    expect(match.showdown!.winner_seat).toBe(1);
+    expect(match.showdown!.winner_seats).toEqual([0]);
     expect(match.showdown!.poker_tie).toBe(true);
     expect(match.community_board.map((card) => card.id)).toEqual(["full_AS", "full_KS", "full_QS", "full_JS", "full_10S"]);
     expect(match.players.every((seat) => seat.full_hand.every((card) => card.visibility === "PUBLIC"))).toBe(true);

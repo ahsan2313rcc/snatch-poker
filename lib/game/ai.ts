@@ -329,8 +329,8 @@ function winsAgainst(holes: Card[], board: Card[], opponents: Card[][]): boolean
   });
 }
 
-function kept(three: Card[], board: Card[]): { hand: HandValue; hole_tiebreak: [number, number] } {
-  let best: { hand: HandValue; hole_tiebreak: [number, number] } | null = null;
+function kept(three: Card[], board: Card[]): { hand: HandValue; hole_tiebreak: number[] } {
+  let best: { hand: HandValue; hole_tiebreak: number[] } | null = null;
   for (let index = 0; index < three.length; index++) {
     const holes = three.filter((_, cardIndex) => cardIndex !== index);
     if (holes.length + board.length < 5) continue;

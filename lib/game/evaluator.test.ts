@@ -91,7 +91,7 @@ describe("poker evaluation", () => {
     expect(hand.tiebreak).toEqual([14, 13]);
   });
 
-  it("breaks a showdown tie on the highest hole card, then suit", () => {
+  it("breaks a showdown tie on hole-card rank and ignores suits", () => {
     const shared = scoreFive([
       card("as", 14, "SPADES"),
       card("ks", 13, "SPADES"),
@@ -99,12 +99,14 @@ describe("poker evaluation", () => {
       card("js", 11, "SPADES"),
       card("ts", 10, "SPADES"),
     ]);
-    const clubs = holeTiebreak([card("9c", 9, "CLUBS"), card("8d", 8, "DIAMONDS")]);
-    const spades = holeTiebreak([card("9s", 9, "SPADES"), card("2c", 2, "CLUBS")]);
+    const nineEight = holeTiebreak([card("9c", 9, "CLUBS"), card("8d", 8, "DIAMONDS")]);
+    const nineTwo = holeTiebreak([card("9s", 9, "SPADES"), card("2c", 2, "CLUBS")]);
+    const sameRanksOtherSuits = holeTiebreak([card("9h", 9, "HEARTS"), card("8s", 8, "SPADES")]);
     const ace = holeTiebreak([card("ad", 14, "DIAMONDS"), card("3c", 3, "CLUBS")]);
-    expect(compareShowdown({ hand: shared, hole_tiebreak: spades }, { hand: shared, hole_tiebreak: clubs })).toBeGreaterThan(0);
-    expect(compareShowdown({ hand: shared, hole_tiebreak: ace }, { hand: shared, hole_tiebreak: spades })).toBeGreaterThan(0);
-    expect(spades).toEqual([9, 4]);
-    expect(clubs).toEqual([9, 2]);
+    expect(compareShowdown({ hand: shared, hole_tiebreak: nineEight }, { hand: shared, hole_tiebreak: nineTwo })).toBeGreaterThan(0);
+    expect(compareShowdown({ hand: shared, hole_tiebreak: nineEight }, { hand: shared, hole_tiebreak: sameRanksOtherSuits })).toBe(0);
+    expect(compareShowdown({ hand: shared, hole_tiebreak: ace }, { hand: shared, hole_tiebreak: nineEight })).toBeGreaterThan(0);
+    expect(nineEight).toEqual([9, 8]);
+    expect(sameRanksOtherSuits).toEqual([9, 8]);
   });
 });

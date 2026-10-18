@@ -11,7 +11,7 @@ export function ActionLog({ entries, className }: { entries: LogEntry[]; classNa
     endRef.current?.scrollIntoView({ block: "end" });
   }, [entries.length]);
   return (
-    <ScrollArea className={cn("h-full min-h-0", className)}>
+    <ScrollArea className={cn("h-full min-h-0 overflow-hidden", className)}>
       <ol className="space-y-2 px-3 py-3" aria-label="Action log">
         {entries.map((entry) => (
           <li

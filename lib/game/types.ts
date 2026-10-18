@@ -63,14 +63,17 @@ export interface SwapSnapshot {
 export interface ShowdownEntry {
   seat: number;
   hand: HandValue;
-  hole_tiebreak: [number, number];
+  hole_tiebreak: number[];
 }
 
 export interface ShowdownResult {
+  /** First winner. Splits also list every winner in `winner_seats`. */
   winner_seat: number;
+  winner_seats: number[];
   entries: ShowdownEntry[];
   vp_before: number[];
   vp_after: number[];
+  /** Mini cards banked by `winner_seat`. */
   banked: number;
   poker_tie: boolean;
 }

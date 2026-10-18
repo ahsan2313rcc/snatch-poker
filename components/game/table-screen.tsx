@@ -26,6 +26,7 @@ import {
   heroCanAct,
   heroSeat,
   opponentsFrom,
+  matchVictorLine,
   phaseLabel,
   showdownTable,
   shownBid,
@@ -75,15 +76,15 @@ export function TableScreen({
   const holeSelectable = (state.phase === "HIJACK" || state.phase === "DISCARD") && heroCanAct(state, hero);
 
   return (
-    <main className="mx-auto flex min-h-full w-full max-w-[1400px] flex-1 flex-col px-3 py-3 sm:px-5">
-      <header className="mb-3 flex flex-wrap items-center justify-between gap-3">
+    <main className="table-screen mx-auto flex min-h-full w-full max-w-[1400px] flex-1 flex-col px-3 py-3 sm:px-5">
+      <header className="mb-3 flex shrink-0 flex-wrap items-center justify-between gap-3 landscape:mb-1.5">
         <div>
-          <p className="text-[0.68rem] tracking-[0.22em] text-[#e4c576] uppercase">Deal {state.deal_number}</p>
-          <h1 className="font-heading text-2xl text-[#f6f1e7] sm:text-3xl">{phaseLabel(state)}</h1>
+          <p className="table-kicker text-[0.68rem] tracking-[0.22em] text-[#e4c576] uppercase">Deal {state.deal_number}</p>
+          <h1 className="table-title font-heading text-2xl text-[#f6f1e7] sm:text-3xl">{phaseLabel(state)}</h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <RulesDialog />
-          <Button variant="outline" className="border-[#e4c576]/30 bg-transparent text-[#f6f1e7] lg:hidden" onClick={() => setLogOpen(true)}>
+          <Button variant="outline" className="log-toggle border-[#e4c576]/30 bg-transparent text-[#f6f1e7] lg:hidden" onClick={() => setLogOpen(true)}>
             Log
           </Button>
           <Button variant="outline" className="border-[#e4c576]/30 bg-transparent text-[#f6f1e7]" onClick={() => setLeaveOpen(true)}>
@@ -91,7 +92,7 @@ export function TableScreen({
           </Button>
         </div>
       </header>
-      <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
+      <div className="vault-race mb-3 flex shrink-0 gap-2 overflow-x-auto pb-1 landscape:mb-1.5">
         {state.players.map((player) => (
           <VaultRace key={player.id} player={player} target={state.vp_target} hero={player.seat_index === hero} />
         ))}
@@ -101,16 +102,16 @@ export function TableScreen({
           {state.error}
         </p>
       ) : null}
-      <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[minmax(0,1fr)_20rem]">
-        <section className="flex min-w-0 flex-col">
-          <div className="table-rail rounded-[1.8rem] p-2 sm:p-3">
-            <div className="felt relative min-h-[26rem] rounded-[1.4rem] sm:min-h-[30rem] lg:min-h-[34rem]">
-              <div className="mb-5 flex gap-2 overflow-x-auto px-3 pt-3 pb-2 lg:hidden">
+      <div className="table-grid grid min-h-0 flex-1 gap-3">
+        <section className="table-stage flex min-h-0 min-w-0 flex-col">
+          <div className="table-rail flex min-h-0 flex-1 flex-col rounded-[1.8rem] p-2 sm:p-3">
+            <div className="felt felt-surface relative min-h-[22rem] flex-1 rounded-[1.4rem] portrait:min-h-[26rem] sm:portrait:min-h-[30rem]">
+              <div className="seat-strip mb-5 gap-2 overflow-x-auto px-3 pt-3 pb-2">
                 {opponents.map((player) => (
                   <SeatPlate key={player.id} player={player} state={state} viewer={hero} />
                 ))}
               </div>
-              <div className="pointer-events-none absolute inset-0 hidden lg:block">
+              <div className="seat-orbit pointer-events-none absolute inset-0">
                 {opponents.map((player, index) => {
                   const spot = layout[index];
                   if (!spot) return null;
@@ -125,14 +126,15 @@ export function TableScreen({
                   );
                 })}
               </div>
-              <div className="flex flex-col items-center px-3 pt-1 pb-20 lg:absolute lg:top-1/2 lg:left-1/2 lg:w-full lg:-translate-x-1/2 lg:-translate-y-[46%] lg:px-2 lg:pt-0 lg:pb-0">
+              <div className="board-anchor flex flex-col items-center px-3 pt-1 pb-6 portrait:pb-16 lg:absolute lg:top-1/2 lg:left-1/2 lg:w-full lg:-translate-x-1/2 lg:-translate-y-[46%] lg:px-2 lg:pt-0 lg:pb-0">
                 <Board state={state} hero={hero} selectedBoard={selectedBoard} onSelectBoard={holeSelectable && state.phase === "HIJACK" ? setSelectedBoard : undefined} />
                 {caption ? <p className="mt-2 text-center text-sm text-[#d7ecff]">{caption}</p> : null}
                 <ResultStrip state={state} hero={hero} />
               </div>
             </div>
           </div>
-          <div className="relative z-10 -mt-12 flex flex-col items-center">
+          <div className="hero-dock shrink-0">
+          <div className="hero-block relative z-10 flex shrink-0 flex-col items-center portrait:-mt-10">
             <div className="mb-2 flex items-center gap-2">
               {state.dealer_button_index === hero ? <span className="dealer-chip">D</span> : null}
               <span className="font-heading text-lg text-[#f6f1e7]">{you.name}</span>
@@ -154,10 +156,10 @@ export function TableScreen({
             {finals ? null : <HeroBids state={state} hero={hero} />}
           </div>
           {finals ? (
-            <p className="mt-4 text-sm text-[#c9bfae]">Mini cards stay face down. The showdown uses hole cards and the board.</p>
+            <p className="finals-note mt-4 text-sm text-[#c9bfae]">Mini cards stay face down. The showdown uses hole cards and the board.</p>
           ) : (
-          <div className="mt-4 grid items-start gap-3 lg:grid-cols-[14rem_minmax(0,1fr)]">
-            <div className="rounded-2xl border border-[#e4c576]/25 bg-[#10241c] p-3">
+          <div className="mini-block mt-4 grid shrink-0 items-start gap-3 lg:grid-cols-[14rem_minmax(0,1fr)]">
+            <div className="vault-panel rounded-2xl border border-[#e4c576]/25 bg-[#10241c] p-3">
               <div className="flex items-center justify-between gap-2">
                 <h2 className="font-heading text-lg text-[#f3e2b3]">Vault</h2>
                 <Button
@@ -168,7 +170,7 @@ export function TableScreen({
                   {showVault ? "Close" : "Open"}
                 </Button>
               </div>
-              <p className="text-xs leading-5 text-[#c9bfae]">
+              <p className="vault-copy text-xs leading-5 text-[#c9bfae]">
                 {you.reserve_vp_pile.length === 0
                   ? "Win a showdown to bank the mini cards you held back."
                   : "Opponents see the count. You can spend these on a bid."}
@@ -193,7 +195,7 @@ export function TableScreen({
                 </div>
               ) : null}
             </div>
-            <div>
+            <div className="mini-hand min-w-0">
               <div className="mb-2 flex items-baseline gap-3">
                 <h2 className="font-heading text-lg text-[#f6f1e7]">Mini hand</h2>
                 <span className="text-xs text-[#c9bfae]">{you.mini_hand.length} cards</span>
@@ -221,7 +223,7 @@ export function TableScreen({
             </div>
           </div>
           )}
-          <div className="mt-3">
+          <div className="action-block mt-3 shrink-0">
             <ActionBar
               state={state}
               hero={hero}
@@ -247,10 +249,13 @@ export function TableScreen({
                   onNewMatch={onLeave}
             />
           </div>
+          </div>
         </section>
-        <aside className="hidden min-h-[28rem] flex-col overflow-hidden rounded-2xl border border-[#e4c576]/20 bg-[#0c1c17] lg:flex">
-          <h2 className="font-heading border-b border-[#e4c576]/15 px-3 py-3 text-lg text-[#f3e2b3]">Table log</h2>
-          <ActionLog entries={state.action_log} />
+        <aside className="table-log h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-[#e4c576]/20 bg-[#0c1c17]">
+          <h2 className="font-heading shrink-0 border-b border-[#e4c576]/15 px-3 py-3 text-lg text-[#f3e2b3]">Table log</h2>
+          <div className="min-h-0 flex-1">
+            <ActionLog entries={state.action_log} className="h-full" />
+          </div>
         </aside>
       </div>
       <Dialog open={logOpen} onOpenChange={setLogOpen}>
@@ -300,9 +305,7 @@ export function TableScreen({
       <Dialog open={state.phase === "MATCH_OVER" && !winDismissed} onOpenChange={(open) => setWinDismissed(!open)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="font-heading text-2xl">
-              {state.players[state.match_winner_seat ?? 0]?.name} takes the match
-            </DialogTitle>
+            <DialogTitle className="font-heading text-2xl">{matchVictorLine(state)} the match</DialogTitle>
             <DialogDescription>
               The vault reached {state.vp_target}. A winning showdown banks the mini cards that were held back.
             </DialogDescription>
@@ -387,19 +390,22 @@ function ResultStrip({ state, hero }: { state: MatchState; hero: number }) {
     const showdown = state.showdown;
     return (
       <div className="mt-3 w-full max-w-xl rounded-2xl bg-[#06140f]/80 p-3 text-left">
-        {showdown.poker_tie ? (
-          <p className="mb-2 text-xs text-[#d7ecff]">Poker hands tied. Highest hole card wins, spades high.</p>
+        {showdown.winner_seats.length > 1 ? (
+          <p className="mb-2 text-xs text-[#d7ecff]">The hands tie. Suits do not decide it, so each winner banks their mini cards.</p>
+        ) : showdown.poker_tie ? (
+          <p className="mb-2 text-xs text-[#d7ecff]">The poker hands tied. The higher hole card wins.</p>
         ) : null}
         <ul className="space-y-1">
           {showdown.entries
             .slice()
-            .sort((a, b) => Number(b.seat === showdown.winner_seat) - Number(a.seat === showdown.winner_seat))
+            .sort((a, b) => Number(showdown.winner_seats.includes(b.seat)) - Number(showdown.winner_seats.includes(a.seat)))
             .map((entry) => {
               const delta = (showdown.vp_after[entry.seat] ?? 0) - (showdown.vp_before[entry.seat] ?? 0);
               const player = state.players[entry.seat]!;
+              const won = showdown.winner_seats.includes(entry.seat);
               return (
                 <li key={entry.seat} className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
-                  <span className={entry.seat === showdown.winner_seat ? "text-[#f3e2b3]" : "text-[#d9d0c2]"}>
+                  <span className={won ? "text-[#f3e2b3]" : "text-[#d9d0c2]"}>
                     {player.name}
                     {entry.seat === hero ? " (you)" : ""} · {entry.hand.name}
                   </span>
@@ -448,31 +454,38 @@ function SeatPlate({ player, state, viewer }: { player: PlayerState; state: Matc
     state.actor_seat === player.seat_index ||
     (state.phase === "COMMIT" && !state.commits_locked[player.seat_index]) ||
     (state.phase === "DISCARD" && !state.discards_locked[player.seat_index]) ||
-    ((state.phase === "SHOWDOWN" || state.phase === "MATCH_OVER") && state.showdown?.winner_seat === player.seat_index);
+    ((state.phase === "SHOWDOWN" || state.phase === "MATCH_OVER") && state.showdown?.winner_seats.includes(player.seat_index));
   const matchPoint = player.reserve_vp_pile.length === state.vp_target - 1;
   const finals = showdownTable(state);
+  const miniRound =
+    state.phase === "MULLIGAN" ||
+    state.phase === "BLIND" ||
+    state.phase === "REVEAL" ||
+    state.phase === "COMMIT" ||
+    state.phase === "FLIP" ||
+    state.phase === "RESOLVE";
   const crowded = state.players.length >= 6;
   return (
     <article
-      className={`${crowded ? "w-[7.4rem]" : "w-[9.5rem]"} rounded-2xl border bg-[#07140f]/85 p-2 backdrop-blur-sm ${turn ? "border-[#e4c576]" : "border-white/10"}`}
+      className={`seat-plate ${crowded ? "w-[7.4rem]" : "w-[9.5rem]"} rounded-2xl border bg-[#07140f]/85 p-2 backdrop-blur-sm ${turn ? "border-[#e4c576]" : "border-white/10"}`}
       style={{ boxShadow: turn ? `0 0 0 1px ${SEAT_TINTS[player.seat_index]}` : undefined }}
     >
       <div className="flex items-center justify-between gap-1">
         <h3 className="truncate text-sm text-[#f6f1e7]">{player.name}</h3>
         {state.dealer_button_index === player.seat_index ? <span className="dealer-chip">D</span> : null}
       </div>
-      <p className="text-[0.68rem] text-[#c9bfae]">
+      <p className="seat-meta text-[0.68rem] text-[#c9bfae]">
         Vault {player.reserve_vp_pile.length}/{state.vp_target}
         {matchPoint ? " · match point" : ""}
         {finals ? "" : ` · ${player.mini_hand.length} mini`}
       </p>
-      <div className="mt-1 flex gap-1">
+      <div className={`mt-1 flex gap-1 ${miniRound ? "seat-holes-quiet" : ""}`}>
         {player.full_hand.map((card) => (
           <PlayingCard
             key={card.id}
             card={card}
             size="seat"
-            faceDown={!cardIsOpen(card, player.seat_index, viewer)}
+            faceDown={miniRound || !cardIsOpen(card, player.seat_index, viewer)}
           />
         ))}
       </div>

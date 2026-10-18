@@ -195,31 +195,22 @@ export function bestHand(cards: Card[]): HandValue {
   return best;
 }
 
-/** Highest hole card, then suit. Spades outrank hearts, clubs, diamonds. */
-export function holeTiebreak(holes: Card[]): [number, number] {
-  let best = holes[0];
-  if (!best) throw new Error("Showdown tiebreak needs hole cards.");
-  for (const card of holes.slice(1)) {
-    const suit = SUIT_VALUE[card.suit];
-    const bestSuit = SUIT_VALUE[best.suit];
-    if (card.rank > best.rank || (card.rank === best.rank && suit > bestSuit)) best = card;
-  }
-  return [best.rank, SUIT_VALUE[best.suit]];
+/** Hole-card ranks, high to low. Suits are not part of a showdown. */
+export function holeTiebreak(holes: Card[]): number[] {
+  if (holes.length === 0) throw new Error("Showdown tiebreak needs hole cards.");
+  return holes.map((card) => card.rank).sort((a, b) => b - a);
 }
 
-const SUIT_VALUE = {
-  SPADES: 4,
-  HEARTS: 3,
-  CLUBS: 2,
-  DIAMONDS: 1,
-} as const;
-
 export function compareShowdown(
-  a: { hand: HandValue; hole_tiebreak: [number, number] },
-  b: { hand: HandValue; hole_tiebreak: [number, number] },
+  a: { hand: HandValue; hole_tiebreak: number[] },
+  b: { hand: HandValue; hole_tiebreak: number[] },
 ): number {
   const poker = compareHands(a.hand, b.hand);
   if (poker !== 0) return poker;
-  if (a.hole_tiebreak[0] !== b.hole_tiebreak[0]) return a.hole_tiebreak[0] - b.hole_tiebreak[0];
-  return a.hole_tiebreak[1] - b.hole_tiebreak[1];
+  const length = Math.max(a.hole_tiebreak.length, b.hole_tiebreak.length);
+  for (let index = 0; index < length; index++) {
+    const diff = (a.hole_tiebreak[index] ?? 0) - (b.hole_tiebreak[index] ?? 0);
+    if (diff !== 0) return diff;
+  }
+  return 0;
 }

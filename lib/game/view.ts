@@ -8,6 +8,15 @@ export function showdownTable(state: MatchState): boolean {
   return state.phase === "SHOWDOWN_CALL" || state.phase === "SHOWDOWN" || state.phase === "MATCH_OVER";
 }
 
+export function matchVictorLine(state: MatchState): string {
+  const victors = state.players.filter((player) => player.reserve_vp_pile.length >= state.vp_target);
+  const names = (victors.length > 0 ? victors : [state.players[state.match_winner_seat ?? 0]].filter(Boolean)).map(
+    (player) => player!.name,
+  );
+  if (names.length > 1) return `${names.join(" and ")} share`;
+  return `${names[0] ?? "A player"} wins`;
+}
+
 export function heroSeat(state: MatchState): number {
   return state.players.find((player) => player.is_human)?.seat_index ?? 0;
 }
@@ -61,9 +70,9 @@ export function coachLine(state: MatchState, seat: number): string {
     case "SHOWDOWN_CALL":
       return "Mini cards stay hidden. Start the final showdown to turn the hole cards up.";
     case "SHOWDOWN":
-      return "Best five cards from your two hole cards and the board. The winner banks every mini card still in hand.";
+      return "Best five cards from your two hole cards and the board. A tie banks every winner's leftover mini cards. Suits do not break it.";
     case "MATCH_OVER":
-      return `${state.players[state.match_winner_seat ?? 0]?.name ?? "A player"} wins the match.`;
+      return `${matchVictorLine(state)} the match.`;
     default:
       return "";
   }

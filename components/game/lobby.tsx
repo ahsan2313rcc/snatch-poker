@@ -15,8 +15,8 @@ export function Lobby({
 }) {
   const [name, setName] = useState("Ahasan");
   const [players, setPlayers] = useState(3);
-  const [mulligan, setMulligan] = useState<MulliganRule>("per_match");
   const scale = tableScale(players);
+  const mulligan: MulliganRule = resolvedMulligan(players, "per_match");
   const partners = BOT_NAMES.slice(0, players - 1);
   return (
     <main className="mx-auto flex min-h-full w-full max-w-6xl flex-1 flex-col justify-center px-4 py-10 sm:px-8">
@@ -44,7 +44,7 @@ export function Lobby({
           onSubmit={(event) => {
             event.preventDefault();
             if (!name.trim()) return;
-            onStart({ name: name.trim(), players, mulligan: resolvedMulligan(players, mulligan) });
+            onStart({ name: name.trim(), players, mulligan });
           }}
         >
           <h2 className="font-heading text-2xl text-[#f6f1e7]">Sit down</h2>
@@ -81,35 +81,11 @@ export function Lobby({
           <p className="mt-3 text-sm leading-6 text-[#d9d0c2]">
             With {partners.join(", ")}. First vault to {scale.vpTarget} cards. One mini deck in the shoe.
           </p>
-          <p className="mt-5 text-sm text-[#c9bfae]">Mulligan</p>
-          {players <= 3 ? (
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              <Button
-                type="button"
-                variant={mulligan === "per_match" ? "default" : "outline"}
-                className={choiceClass(mulligan === "per_match")}
-                onClick={() => setMulligan("per_match")}
-                aria-pressed={mulligan === "per_match"}
-              >
-                Once a match
-              </Button>
-              <Button
-                type="button"
-                variant={mulligan === "per_deal" ? "default" : "outline"}
-                className={choiceClass(mulligan === "per_deal")}
-                onClick={() => setMulligan("per_deal")}
-                aria-pressed={mulligan === "per_deal"}
-              >
-                Once a deal
-              </Button>
-            </div>
-          ) : (
-            <p className="mt-2 text-sm leading-6 text-[#d9d0c2]">
-              {players === 4
-                ? "Four seats get one mulligan for the match."
-                : "Five, six, and seven seats play with no mulligan."}
-            </p>
-          )}
+          <p className="mt-5 text-sm leading-6 text-[#d9d0c2]">
+            {players <= 4
+              ? "One mulligan for the match. It is spent for every street after you take it."
+              : "Five, six, and seven seats play with no mulligan."}
+          </p>
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <Button type="submit" className="h-11 bg-[#e4c576] px-5 text-base text-[#1a1206] hover:bg-[#f0d48a]" data-testid="start-match">
               Deal the match
@@ -120,12 +96,6 @@ export function Lobby({
       </div>
     </main>
   );
-}
-
-function choiceClass(active: boolean): string {
-  return active
-    ? "h-10 bg-[#e4c576] text-[#1a1206] hover:bg-[#f0d48a]"
-    : "h-10 border-[#e4c576]/30 bg-transparent text-[#f6f1e7]";
 }
 
 const STEPS = [

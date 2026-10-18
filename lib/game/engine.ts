@@ -473,21 +473,25 @@ function showdown(state: MatchState): void {
     hand: bestHand([...player.full_hand, ...state.community_board]),
     hole_tiebreak: holeTiebreak(player.full_hand),
   }));
-  let winner = entries[0]!;
+  let best = entries[0]!;
   for (const entry of entries.slice(1)) {
-    if (compareShowdown(entry, winner) > 0) winner = entry;
+    if (compareShowdown(entry, best) > 0) best = entry;
   }
-  const pokerTie = entries.filter((entry) => compareHands(entry.hand, winner.hand) === 0).length > 1;
+  const winners = entries.filter((entry) => compareShowdown(entry, best) === 0);
+  const winnerSeats = new Set(winners.map((entry) => entry.seat));
+  const pokerTie = entries.filter((entry) => compareHands(entry.hand, best.hand) === 0).length > 1;
   const vpBefore = state.players.map((player) => player.reserve_vp_pile.length);
-  const winnerPlayer = state.players[winner.seat]!;
-  const banked = winnerPlayer.mini_hand.length;
-  for (const card of winnerPlayer.mini_hand) {
-    card.visibility = "OWNER_ONLY";
-    winnerPlayer.reserve_vp_pile.push(card);
-  }
-  winnerPlayer.mini_hand = [];
+  const bankedBySeat = state.players.map(() => 0);
   for (const player of state.players) {
-    if (player.seat_index === winner.seat) continue;
+    if (winnerSeats.has(player.seat_index)) {
+      bankedBySeat[player.seat_index] = player.mini_hand.length;
+      for (const card of player.mini_hand) {
+        card.visibility = "OWNER_ONLY";
+        player.reserve_vp_pile.push(card);
+      }
+      player.mini_hand = [];
+      continue;
+    }
     for (const card of player.mini_hand) {
       card.visibility = "HIDDEN";
       state.mini_discard_pile.push(card);
@@ -495,26 +499,40 @@ function showdown(state: MatchState): void {
     player.mini_hand = [];
   }
   const vpAfter = state.players.map((player) => player.reserve_vp_pile.length);
+  const winnerSeat = winners[0]!.seat;
   state.showdown = {
-    winner_seat: winner.seat,
+    winner_seat: winnerSeat,
+    winner_seats: winners.map((entry) => entry.seat),
     entries,
     vp_before: vpBefore,
     vp_after: vpAfter,
-    banked,
+    banked: bankedBySeat[winnerSeat] ?? 0,
     poker_tie: pokerTie,
   };
-  log(
-    state,
-    `${winnerPlayer.name} wins the showdown with ${winner.hand.name}${pokerTie ? ", breaking a poker tie on the highest hole card" : ""}.`,
-    "win",
-  );
-  log(
-    state,
-    `${winnerPlayer.name} banks ${banked} mini ${banked === 1 ? "card" : "cards"}. Vault is ${vpAfter[winner.seat]}/${state.vp_target}.`,
-    "win",
-  );
+  const winnerNames = winners.map((entry) => state.players[entry.seat]!.name);
+  if (winners.length > 1) {
+    log(
+      state,
+      `${winnerNames.join(" and ")} split the showdown with ${best.hand.name}. Suits do not break a tie, so each winner banks the mini cards still in hand.`,
+      "win",
+    );
+  } else {
+    log(
+      state,
+      `${winnerNames[0]} wins the showdown with ${best.hand.name}${pokerTie ? ", on the higher hole card" : ""}.`,
+      "win",
+    );
+  }
+  for (const entry of winners) {
+    const banked = bankedBySeat[entry.seat] ?? 0;
+    log(
+      state,
+      `${state.players[entry.seat]!.name} banks ${banked} mini ${banked === 1 ? "card" : "cards"}. Vault is ${vpAfter[entry.seat]}/${state.vp_target}.`,
+      "win",
+    );
+  }
   for (const player of state.players) {
-    if (player.seat_index === winner.seat) continue;
+    if (winnerSeats.has(player.seat_index)) continue;
     const before = vpBefore[player.seat_index] ?? 0;
     const after = vpAfter[player.seat_index] ?? 0;
     const spent = before - after;
@@ -525,12 +543,19 @@ function showdown(state: MatchState): void {
         : `${player.name} loses the showdown. Vault stays ${after}/${state.vp_target}.`,
     );
   }
-  const victor = state.players.find((player) => player.reserve_vp_pile.length >= state.vp_target);
-  if (victor) {
-    state.match_winner_seat = victor.seat_index;
+  const victors = state.players.filter((player) => player.reserve_vp_pile.length >= state.vp_target);
+  if (victors.length > 0) {
+    state.match_winner_seat = victors[0]!.seat_index;
     state.phase = "MATCH_OVER";
     state.actor_seat = null;
-    log(state, `${victor.name} reaches ${victor.reserve_vp_pile.length} victory points and takes the match.`, "win");
+    const names = victors.map((player) => player.name).join(" and ");
+    log(
+      state,
+      victors.length > 1
+        ? `${names} each reach the victory target and share the match.`
+        : `${names} reaches ${victors[0]!.reserve_vp_pile.length} victory points and takes the match.`,
+      "win",
+    );
     return;
   }
   state.phase = "SHOWDOWN";

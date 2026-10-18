@@ -36,7 +36,7 @@ export function ActionBar({
   const acting = heroCanAct(state, hero);
   const preview = state.phase === "MULLIGAN" && acting ? mulliganPreview(state, hero) : null;
   return (
-    <div className="rounded-2xl border border-[#e4c576]/20 bg-[#0c1c17]/90 p-3 shadow-lg backdrop-blur-sm">
+    <div className="action-shell rounded-2xl border border-[#e4c576]/20 bg-[#0c1c17]/90 p-3 shadow-lg backdrop-blur-sm">
       <p className="text-sm leading-6 text-[#f6f1e7]" aria-live="polite">
         {coachLine(state, hero)}
       </p>
