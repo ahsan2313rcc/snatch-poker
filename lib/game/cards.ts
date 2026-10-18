@@ -155,10 +155,16 @@ export function shuffleInPlace<T>(items: T[], seed: number): number {
   return s;
 }
 
-export function tableScale(playerCount: number): { vpTarget: number; miniDecks: 1 | 2 } {
+export function tableScale(playerCount: number): { vpTarget: number; miniDecks: 1 } {
   if (playerCount <= 3) return { vpTarget: 5, miniDecks: 1 };
-  if (playerCount === 4) return { vpTarget: 3, miniDecks: 1 };
-  return { vpTarget: 3, miniDecks: 2 };
+  return { vpTarget: 3, miniDecks: 1 };
+}
+
+/** 2–3 keep the lobby choice. Four seats get one mulligan. Five to seven get none. */
+export function resolvedMulligan(playerCount: number, choice: "per_match" | "per_deal" | "none"): "per_match" | "per_deal" | "none" {
+  if (playerCount >= 5) return "none";
+  if (playerCount === 4) return "per_match";
+  return choice === "none" ? "per_match" : choice;
 }
 
 export function roundName(round: number): string {

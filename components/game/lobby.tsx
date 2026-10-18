@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BOT_NAMES } from "@/lib/game/engine";
-import { tableScale } from "@/lib/game/cards";
+import { resolvedMulligan, tableScale } from "@/lib/game/cards";
 import type { MulliganRule } from "@/lib/game/types";
 import { RulesDialog } from "@/components/game/rules-dialog";
 
@@ -44,7 +44,7 @@ export function Lobby({
           onSubmit={(event) => {
             event.preventDefault();
             if (!name.trim()) return;
-            onStart({ name: name.trim(), players, mulligan });
+            onStart({ name: name.trim(), players, mulligan: resolvedMulligan(players, mulligan) });
           }}
         >
           <h2 className="font-heading text-2xl text-[#f6f1e7]">Sit down</h2>
@@ -61,7 +61,7 @@ export function Lobby({
           />
           <p className="mt-5 text-sm text-[#c9bfae]">Seats</p>
           <div className="mt-2 flex flex-wrap gap-2">
-            {[2, 3, 4, 5, 6].map((count) => (
+            {[2, 3, 4, 5, 6, 7].map((count) => (
               <Button
                 key={count}
                 type="button"
@@ -79,30 +79,37 @@ export function Lobby({
             ))}
           </div>
           <p className="mt-3 text-sm leading-6 text-[#d9d0c2]">
-            With {partners.join(", ")}. First vault to {scale.vpTarget} cards.{" "}
-            {scale.miniDecks === 2 ? "Two mini decks in the shoe." : "One mini deck in the shoe."}
+            With {partners.join(", ")}. First vault to {scale.vpTarget} cards. One mini deck in the shoe.
           </p>
           <p className="mt-5 text-sm text-[#c9bfae]">Mulligan</p>
-          <div className="mt-2 grid grid-cols-2 gap-2">
-            <Button
-              type="button"
-              variant={mulligan === "per_match" ? "default" : "outline"}
-              className={choiceClass(mulligan === "per_match")}
-              onClick={() => setMulligan("per_match")}
-              aria-pressed={mulligan === "per_match"}
-            >
-              Once a match
-            </Button>
-            <Button
-              type="button"
-              variant={mulligan === "per_deal" ? "default" : "outline"}
-              className={choiceClass(mulligan === "per_deal")}
-              onClick={() => setMulligan("per_deal")}
-              aria-pressed={mulligan === "per_deal"}
-            >
-              Once a deal
-            </Button>
-          </div>
+          {players <= 3 ? (
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <Button
+                type="button"
+                variant={mulligan === "per_match" ? "default" : "outline"}
+                className={choiceClass(mulligan === "per_match")}
+                onClick={() => setMulligan("per_match")}
+                aria-pressed={mulligan === "per_match"}
+              >
+                Once a match
+              </Button>
+              <Button
+                type="button"
+                variant={mulligan === "per_deal" ? "default" : "outline"}
+                className={choiceClass(mulligan === "per_deal")}
+                onClick={() => setMulligan("per_deal")}
+                aria-pressed={mulligan === "per_deal"}
+              >
+                Once a deal
+              </Button>
+            </div>
+          ) : (
+            <p className="mt-2 text-sm leading-6 text-[#d9d0c2]">
+              {players === 4
+                ? "Four seats get one mulligan for the match."
+                : "Five, six, and seven seats play with no mulligan."}
+            </p>
+          )}
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <Button type="submit" className="h-11 bg-[#e4c576] px-5 text-base text-[#1a1206] hover:bg-[#f0d48a]" data-testid="start-match">
               Deal the match

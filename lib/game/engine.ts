@@ -5,6 +5,7 @@ import {
   nextRandom,
   roundName,
   shuffleInPlace,
+  resolvedMulligan,
   tableScale,
   uniqueCards,
 } from "@/lib/game/cards";
@@ -22,7 +23,7 @@ import type {
   PlayerState,
 } from "@/lib/game/types";
 
-export const BOT_NAMES = ["Vesper", "Calder", "Juniper", "Rook", "Mara", "Silas"];
+export const BOT_NAMES = ["Vesper", "Calder", "Juniper", "Rook", "Mara", "Silas", "Nell"];
 
 export function seatOrder(button: number, count: number): number[] {
   const order: number[] = [];
@@ -42,12 +43,13 @@ export function publicBoard(state: MatchState): Card[] {
 }
 
 export function createMatch(config: MatchConfig, preset?: DealPreset): MatchState {
-  if (config.player_count < 2 || config.player_count > 6) {
-    throw new Error("Hold'em Hijack seats 2 to 6 players.");
+  if (config.player_count < 2 || config.player_count > 7) {
+    throw new Error("Hold'em Hijack seats 2 to 7 players.");
   }
   if (config.human_seat < -1 || config.human_seat >= config.player_count) {
     throw new Error("The human seat is outside the table.");
   }
+  config = { ...config, mulligan: resolvedMulligan(config.player_count, config.mulligan) };
   const scale = tableScale(config.player_count);
   const players: PlayerState[] = [];
   let bot = 0;
@@ -190,6 +192,8 @@ function reduce(state: MatchState, action: Action): void {
       return hijackSwap(state, action.seat, action.hand_card_id, action.board_index);
     case "DISCARD":
       return discard(state, action.seat, action.card_id);
+    case "START_SHOWDOWN":
+      return beginShowdown(state);
     case "CONTINUE":
       return continueMatch(state);
     default:
@@ -198,6 +202,7 @@ function reduce(state: MatchState, action: Action): void {
 }
 
 function mulligan(state: MatchState, seat: number, use: boolean): void {
+  if (state.config.mulligan === "none") throw new Error("This table does not play a mulligan.");
   assertPhase(state, "MULLIGAN");
   if (state.actor_seat !== seat) throw new Error("It is not your turn to mulligan.");
   const player = seatPlayer(state, seat);
@@ -442,6 +447,18 @@ function discard(state: MatchState, seat: number, cardId: string): void {
     enterMulligan(state);
     return;
   }
+  callShowdown(state);
+}
+
+function callShowdown(state: MatchState): void {
+  state.current_round = 4;
+  state.phase = "SHOWDOWN_CALL";
+  state.actor_seat = null;
+  log(state, "The river is finished. Start the final showdown when the table is ready.");
+}
+
+function beginShowdown(state: MatchState): void {
+  assertPhase(state, "SHOWDOWN_CALL");
   showdown(state);
 }
 
@@ -610,12 +627,21 @@ function dealSetup(state: MatchState, preset?: DealPreset): void {
       state.players[seat]!.full_hand.push(card);
     }
   }
-  for (let round = 0; round < 7; round++) {
+  const miniCounts = miniDealCounts(state);
+  for (let round = 0; round < Math.max(...miniCounts); round++) {
     for (const seat of order) {
+      if (round >= miniCounts[seat]!) continue;
       const card = takeMini(preset?.minis?.[seat]?.[round]);
       card.visibility = "OWNER_ONLY";
       state.players[seat]!.mini_hand.push(card);
     }
+  }
+  const short = state.players.filter((player) => player.mini_hand.length < 7);
+  if (short.length > 0) {
+    log(
+      state,
+      `The mini shoe is short. ${short.map((player) => `${player.name} is dealt ${player.mini_hand.length}`).join(", ")}.`,
+    );
   }
   if (state.action_log.length === 0) {
     log(state, `Match starts. First vault to ${state.vp_target} cards wins.`);
@@ -643,7 +669,26 @@ function startBlind(state: MatchState): void {
   state.actor_seat = seatOrder(state.dealer_button_index, state.players.length)[0] ?? null;
 }
 
+function miniDealCounts(state: MatchState): number[] {
+  const available = state.mini_deck.length;
+  const counts = state.players.map((player) => Math.min(7, Math.max(0, 6 - player.reserve_vp_pile.length)));
+  const minimum = counts.reduce((sum, count) => sum + count, 0);
+  if (available < minimum) {
+    throw new Error("Not enough mini cards left to cover six bids at this table.");
+  }
+  let extra = available - minimum;
+  const order = seatOrder(state.dealer_button_index, state.players.length);
+  for (const seat of order) {
+    while (extra > 0 && counts[seat]! < 7) {
+      counts[seat] = counts[seat]! + 1;
+      extra -= 1;
+    }
+  }
+  return counts;
+}
+
 function nextMulliganSeat(state: MatchState, afterSeat: number | null): number | null {
+  if (state.config.mulligan === "none") return null;
   const order = seatOrder(state.dealer_button_index, state.players.length);
   const start = afterSeat === null ? 0 : order.indexOf(afterSeat) + 1;
   for (let index = start; index < order.length; index++) {

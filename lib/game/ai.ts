@@ -42,6 +42,10 @@ export function decide(state: MatchState, seat: number): Action {
 
 export function progressAi(state: MatchState): MatchState | null {
   if (state.error || state.phase === "MATCH_OVER") return null;
+  if (state.phase === "SHOWDOWN_CALL") {
+    if (state.players.some((player) => player.is_human)) return null;
+    return apply(state, { type: "START_SHOWDOWN" });
+  }
   if (state.phase === "SHOWDOWN") {
     if (state.players.some((player) => player.is_human)) return null;
     return apply(state, { type: "CONTINUE" });

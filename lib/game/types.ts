@@ -2,7 +2,7 @@ export type Suit = "SPADES" | "HEARTS" | "CLUBS" | "DIAMONDS";
 export type DeckType = "FULL" | "MINI";
 export type Visibility = "HIDDEN" | "PUBLIC" | "OWNER_ONLY";
 export type BidSource = "HAND" | "RESERVE";
-export type MulliganRule = "per_match" | "per_deal";
+export type MulliganRule = "per_match" | "per_deal" | "none";
 
 export type Phase =
   | "MULLIGAN"
@@ -13,6 +13,7 @@ export type Phase =
   | "RESOLVE"
   | "HIJACK"
   | "DISCARD"
+  | "SHOWDOWN_CALL"
   | "SHOWDOWN"
   | "MATCH_OVER";
 
@@ -136,4 +137,5 @@ export type Action =
   | { type: "HIJACK_PASS"; seat: number }
   | { type: "HIJACK_SWAP"; seat: number; hand_card_id: string; board_index: number }
   | { type: "DISCARD"; seat: number; card_id: string }
+  | { type: "START_SHOWDOWN" }
   | { type: "CONTINUE" };

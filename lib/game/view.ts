@@ -2,7 +2,11 @@ import { cardLabel, roundName } from "@/lib/game/cards";
 import { canMulligan } from "@/lib/game/engine";
 import type { BidSource, Card, MatchState, Phase } from "@/lib/game/types";
 
-export const SEAT_TINTS = ["#e4c576", "#8eb7ff", "#f0a3c2", "#8fd6a8", "#e7a15a", "#c7b3f5"];
+export const SEAT_TINTS = ["#e4c576", "#8eb7ff", "#f0a3c2", "#8fd6a8", "#e7a15a", "#c7b3f5", "#7ec8c3"];
+
+export function showdownTable(state: MatchState): boolean {
+  return state.phase === "SHOWDOWN_CALL" || state.phase === "SHOWDOWN" || state.phase === "MATCH_OVER";
+}
 
 export function heroSeat(state: MatchState): number {
   return state.players.find((player) => player.is_human)?.seat_index ?? 0;
@@ -19,10 +23,11 @@ export function phaseLabel(state: MatchState): string {
     RESOLVE: "Bid resolved",
     HIJACK: "The Hijack",
     DISCARD: "Discard",
+    SHOWDOWN_CALL: "Final showdown",
     SHOWDOWN: "Showdown",
     MATCH_OVER: "Match over",
   };
-  if (state.phase === "SHOWDOWN" || state.phase === "MATCH_OVER") return step[state.phase];
+  if (state.phase === "SHOWDOWN_CALL" || state.phase === "SHOWDOWN" || state.phase === "MATCH_OVER") return step[state.phase];
   return `${round} · ${step[state.phase]}`;
 }
 
@@ -53,6 +58,8 @@ export function coachLine(state: MatchState, seat: number): string {
     case "DISCARD":
       if (state.discards_locked[seat]) return "Your discard is locked. The table throws away one hole card face down.";
       return "Discard one hole card face down. If you pulled a dangerous board card, you can throw that same card away and nobody sees it.";
+    case "SHOWDOWN_CALL":
+      return "Mini cards stay hidden. Start the final showdown to turn the hole cards up.";
     case "SHOWDOWN":
       return "Best five cards from your two hole cards and the board. The winner banks every mini card still in hand.";
     case "MATCH_OVER":
@@ -107,6 +114,7 @@ export const OPPONENT_LAYOUT: Record<number, Array<[string, string]>> = {
   3: [["14%", "36%"], ["50%", "12%"], ["86%", "36%"]],
   4: [["12%", "40%"], ["32%", "14%"], ["68%", "14%"], ["88%", "40%"]],
   5: [["10%", "42%"], ["26%", "14%"], ["50%", "8%"], ["74%", "14%"], ["90%", "42%"]],
+  6: [["8%", "50%"], ["20%", "20%"], ["38%", "8%"], ["62%", "8%"], ["80%", "20%"], ["92%", "50%"]],
 };
 
 export function mulliganPreview(state: MatchState, seat: number): string | null {

@@ -49,8 +49,8 @@ describe("bots", () => {
     expect(decide(mutated, 1)).toEqual(original);
   });
 
-  it("plays two, four, and six-handed matches to a vault win", () => {
-    for (const playerCount of [2, 4, 6]) {
+  it("plays two, four, six, and seven-handed matches to a vault win", () => {
+    for (const playerCount of [2, 4, 6, 7]) {
       const start = Date.now();
       let state = createMatch({
         player_count: playerCount,

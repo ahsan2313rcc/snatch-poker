@@ -37,17 +37,17 @@ export function RulesDialog({
           <section>
             <h3 className="font-heading text-base text-[#f3e2b3]">Two decks</h3>
             <p>
-              The full-size deck deals two hole cards and the five community cards. The mini deck is
-              the bidding currency. Two or three players use one mini deck and race to 5 vault cards.
-              Four players use one mini deck and race to 3. Five or six players shuffle two mini decks
-              and race to 3.
+              The full-size deck deals two hole cards and the five community cards. One mini deck is
+              the bidding currency at every table size. Two or three players race to 5 vault cards.
+              Four to seven players race to 3. If vault cards thin the shoe, the players left of the
+              button are dealt a full mini hand first. Everyone else still receives enough to bid.
             </p>
           </section>
           <section>
             <h3 className="font-heading text-base text-[#f3e2b3]">A deal, three streets</h3>
             <p>Each player is dealt 7 mini cards. Flop, turn, and river each follow the same five steps.</p>
             <ol className="mt-2 list-decimal space-y-1 pl-5">
-              <li>Mulligan, once per match by default. Throw the mini hand away and draw one fewer card. The vault is never part of a mulligan, and you may only do it if you can still pay two cards for every street left.</li>
+              <li>Mulligan. Two or three players may mulligan once a match, or once a deal if the table chooses that. Four players get one mulligan for the match. Five, six, and seven players do not mulligan. A mulligan throws the mini hand away and draws one fewer card. The vault is never part of it, and you may only do it if you can still pay two cards for every street left.</li>
               <li>Blind. In order from the left of the button, each player plays one mini card face up, from the hand or the vault.</li>
               <li>Reveal. The flop shows three cards, the turn one, the river one.</li>
               <li>Commit. Everyone locks a second mini card face down. They flip together.</li>
@@ -66,7 +66,8 @@ export function RulesDialog({
           <section>
             <h3 className="font-heading text-base text-[#f3e2b3]">Showdown and the vault</h3>
             <p>
-              Hole cards turn up. Best five from the two hole cards and the five board cards wins the
+              After the river, the table starts the final showdown. Mini cards stay hidden. Hole cards
+              turn up. Best five from the two hole cards and the five board cards wins the
               deal and banks every mini card still in hand. Everyone else discards those leftovers.
               Cards already in a vault stay there. If the poker hands tie, the highest hole card wins,
               and a suit tie breaks toward spades, then hearts, clubs, diamonds.

@@ -27,6 +27,7 @@ import {
   heroSeat,
   opponentsFrom,
   phaseLabel,
+  showdownTable,
   shownBid,
 } from "@/lib/game/view";
 
@@ -68,6 +69,7 @@ export function TableScreen({
 
   const opponents = opponentsFrom(state, hero);
   const layout = OPPONENT_LAYOUT[opponents.length] ?? [];
+  const finals = showdownTable(state);
   const caption = boardCaption(state);
   const miniSelectable = (state.phase === "BLIND" || state.phase === "COMMIT") && heroCanAct(state, hero);
   const holeSelectable = (state.phase === "HIJACK" || state.phase === "DISCARD") && heroCanAct(state, hero);
@@ -149,8 +151,11 @@ export function TableScreen({
                 />
               ))}
             </div>
-            <HeroBids state={state} hero={hero} />
+            {finals ? null : <HeroBids state={state} hero={hero} />}
           </div>
+          {finals ? (
+            <p className="mt-4 text-sm text-[#c9bfae]">Mini cards stay face down. The showdown uses hole cards and the board.</p>
+          ) : (
           <div className="mt-4 grid items-start gap-3 lg:grid-cols-[14rem_minmax(0,1fr)]">
             <div className="rounded-2xl border border-[#e4c576]/25 bg-[#10241c] p-3">
               <div className="flex items-center justify-between gap-2">
@@ -213,33 +218,34 @@ export function TableScreen({
                   ))
                 )}
               </div>
-              <div className="mt-3">
-                <ActionBar
-                  state={state}
-                  hero={hero}
-                  selectedMini={selectedMini}
-                  selectedHole={selectedHole}
-                  selectedBoard={selectedBoard}
-                  onMulligan={() => send({ type: "MULLIGAN", seat: hero })}
-                  onDecline={() => send({ type: "DECLINE_MULLIGAN", seat: hero })}
-                  onBid={() => {
-                    if (!selectedMini) return;
-                    send(state.phase === "BLIND" ? { type: "BLIND", seat: hero, card_id: selectedMini } : { type: "COMMIT", seat: hero, card_id: selectedMini });
-                  }}
-                  onPass={() => send({ type: "HIJACK_PASS", seat: hero })}
-                  onSwap={() => {
-                    if (!selectedHole || selectedBoard === null) return;
-                    send({ type: "HIJACK_SWAP", seat: hero, hand_card_id: selectedHole, board_index: selectedBoard });
-                  }}
-                  onDiscard={() => {
-                    if (!selectedHole) return;
-                    send({ type: "DISCARD", seat: hero, card_id: selectedHole });
-                  }}
+            </div>
+          </div>
+          )}
+          <div className="mt-3">
+            <ActionBar
+              state={state}
+              hero={hero}
+              selectedMini={selectedMini}
+              selectedHole={selectedHole}
+              selectedBoard={selectedBoard}
+              onMulligan={() => send({ type: "MULLIGAN", seat: hero })}
+              onDecline={() => send({ type: "DECLINE_MULLIGAN", seat: hero })}
+              onBid={() => {
+                if (!selectedMini) return;
+                send(state.phase === "BLIND" ? { type: "BLIND", seat: hero, card_id: selectedMini } : { type: "COMMIT", seat: hero, card_id: selectedMini });
+              }}
+              onPass={() => send({ type: "HIJACK_PASS", seat: hero })}
+              onSwap={() => {
+                if (!selectedHole || selectedBoard === null) return;
+                send({ type: "HIJACK_SWAP", seat: hero, hand_card_id: selectedHole, board_index: selectedBoard });
+              }}
+              onDiscard={() => {
+                if (!selectedHole) return;
+                send({ type: "DISCARD", seat: hero, card_id: selectedHole });
+              }}
                   onContinue={() => send({ type: "CONTINUE" })}
                   onNewMatch={onLeave}
-                />
-              </div>
-            </div>
+            />
           </div>
         </section>
         <aside className="hidden min-h-[28rem] flex-col overflow-hidden rounded-2xl border border-[#e4c576]/20 bg-[#0c1c17] lg:flex">
@@ -268,6 +274,25 @@ export function TableScreen({
             </Button>
             <Button className="bg-[#e4c576] text-[#1a1206] hover:bg-[#f0d48a]" onClick={onLeave}>
               Leave
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={state.phase === "SHOWDOWN_CALL"}>
+        <DialogContent className="sm:max-w-md" showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle className="font-heading text-2xl">Final showdown</DialogTitle>
+            <DialogDescription>
+              Mini cards stay hidden. Only the two hole cards and the five community cards decide the deal.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              className="bg-[#e4c576] text-[#1a1206] hover:bg-[#f0d48a]"
+              data-testid="start-showdown-dialog"
+              onClick={() => send({ type: "START_SHOWDOWN" })}
+            >
+              Start the final showdown
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -425,9 +450,11 @@ function SeatPlate({ player, state, viewer }: { player: PlayerState; state: Matc
     (state.phase === "DISCARD" && !state.discards_locked[player.seat_index]) ||
     ((state.phase === "SHOWDOWN" || state.phase === "MATCH_OVER") && state.showdown?.winner_seat === player.seat_index);
   const matchPoint = player.reserve_vp_pile.length === state.vp_target - 1;
+  const finals = showdownTable(state);
+  const crowded = state.players.length >= 6;
   return (
     <article
-      className={`w-[9.5rem] rounded-2xl border bg-[#07140f]/85 p-2 backdrop-blur-sm ${turn ? "border-[#e4c576]" : "border-white/10"}`}
+      className={`${crowded ? "w-[7.4rem]" : "w-[9.5rem]"} rounded-2xl border bg-[#07140f]/85 p-2 backdrop-blur-sm ${turn ? "border-[#e4c576]" : "border-white/10"}`}
       style={{ boxShadow: turn ? `0 0 0 1px ${SEAT_TINTS[player.seat_index]}` : undefined }}
     >
       <div className="flex items-center justify-between gap-1">
@@ -436,7 +463,8 @@ function SeatPlate({ player, state, viewer }: { player: PlayerState; state: Matc
       </div>
       <p className="text-[0.68rem] text-[#c9bfae]">
         Vault {player.reserve_vp_pile.length}/{state.vp_target}
-        {matchPoint ? " · match point" : ""} · {player.mini_hand.length} mini
+        {matchPoint ? " · match point" : ""}
+        {finals ? "" : ` · ${player.mini_hand.length} mini`}
       </p>
       <div className="mt-1 flex gap-1">
         {player.full_hand.map((card) => (
@@ -448,21 +476,23 @@ function SeatPlate({ player, state, viewer }: { player: PlayerState; state: Matc
           />
         ))}
       </div>
-      <div className="mt-1 flex min-h-8 gap-1">
-        {bid.cards.map((card, index) =>
-          card ? (
-            <PlayingCard
-              key={`${card.id}-${index}`}
-              card={card}
-              mini
-              size="seat"
-              faceDown={!cardIsOpen(card, player.seat_index, viewer)}
-              source={bid.sources[index]}
-            />
-          ) : null,
-        )}
-      </div>
-      {bid.handName ? <p className="truncate text-[0.65rem] text-[#f3e2b3]">{bid.handName}</p> : null}
+      {finals ? null : (
+        <div className="mt-1 flex min-h-8 gap-1">
+          {bid.cards.map((card, index) =>
+            card ? (
+              <PlayingCard
+                key={`${card.id}-${index}`}
+                card={card}
+                mini
+                size="seat"
+                faceDown={!cardIsOpen(card, player.seat_index, viewer)}
+                source={bid.sources[index]}
+              />
+            ) : null,
+          )}
+        </div>
+      )}
+      {finals || !bid.handName ? null : <p className="truncate text-[0.65rem] text-[#f3e2b3]">{bid.handName}</p>}
     </article>
   );
 }

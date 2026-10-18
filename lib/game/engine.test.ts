@@ -48,6 +48,8 @@ function playCheapDeal(state: MatchState, options?: { mulliganSeat?: number; spe
       const seat = current.players.findIndex((_, index) => !current.discards_locked[index]);
       const card = lowest(current.players[seat]!.full_hand);
       current = act(current, { type: "DISCARD", seat, card_id: card.id });
+    } else if (phase === "SHOWDOWN_CALL") {
+      current = act(current, { type: "START_SHOWDOWN" });
     } else {
       throw new Error(`Unhandled phase ${phase}`);
     }
@@ -82,21 +84,47 @@ function player(overrides: Partial<PlayerState> = {}): PlayerState {
 }
 
 describe("match flow", () => {
-  it("rejects tables outside 2 to 6", () => {
-    expect(() => createMatch(config({ player_count: 1 }))).toThrow(/2 to 6/);
-    expect(() => createMatch(config({ player_count: 7 }))).toThrow(/2 to 6/);
+  it("rejects tables outside 2 to 7", () => {
+    expect(() => createMatch(config({ player_count: 1 }))).toThrow(/2 to 7/);
+    expect(() => createMatch(config({ player_count: 8 }))).toThrow(/2 to 7/);
   });
 
-  it("scales decks and the victory target", () => {
+  it("scales decks, the victory target, and the mulligan", () => {
     expect(createMatch(config({ player_count: 3 })).vp_target).toBe(5);
     expect(createMatch(config({ player_count: 3 })).mini_decks_used).toBe(1);
-    const four = createMatch(config({ player_count: 4 }));
+    const four = createMatch(config({ player_count: 4, mulligan: "per_deal" }));
     expect(four.vp_target).toBe(3);
     expect(four.mini_decks_used).toBe(1);
-    const six = createMatch(config({ player_count: 6, human_seat: 0 }));
+    expect(four.config.mulligan).toBe("per_match");
+    expect(four.phase).toBe("MULLIGAN");
+    const six = createMatch(config({ player_count: 6, human_seat: 0, mulligan: "per_match" }));
     expect(six.vp_target).toBe(3);
-    expect(six.mini_decks_used).toBe(2);
+    expect(six.mini_decks_used).toBe(1);
+    expect(six.config.mulligan).toBe("none");
+    expect(six.phase).toBe("BLIND");
     expect(auditCards(six)).toEqual([]);
+    const seven = createMatch(config({ player_count: 7, human_seat: 0 }));
+    expect(seven.vp_target).toBe(3);
+    expect(seven.mini_decks_used).toBe(1);
+    expect(seven.phase).toBe("BLIND");
+    expect(seven.players.every((player) => player.mini_hand.length === 7)).toBe(true);
+    expect(auditCards(seven)).toEqual([]);
+    const blocked = apply(seven, { type: "MULLIGAN", seat: 0 });
+    expect(blocked.error).toMatch(/does not play a mulligan/);
+  });
+
+  it("deals a short mini shoe once vaults consume the single deck", () => {
+    const ids = ["A", "K", "Q", "J", "10", "9", "8"].flatMap((rank) =>
+      ["S", "H"].map((suit) => `mini_1_${rank}${suit}`),
+    );
+    const reserves = Array.from({ length: 7 }, (_, seat) => [ids[seat * 2]!, ids[seat * 2 + 1]!]);
+    const match = createMatch(config({ player_count: 7, human_seat: 0, seed: 4 }), { reserves, button: 0 });
+    expect(match.players.every((player) => player.reserve_vp_pile.length === 2)).toBe(true);
+    expect(match.players.every((player) => player.mini_hand.length + player.reserve_vp_pile.length >= 6)).toBe(true);
+    expect(match.players.reduce((sum, player) => sum + player.mini_hand.length, 0)).toBe(52 - 14);
+    expect(match.players[1]!.mini_hand.length).toBe(7);
+    expect(match.players.some((player) => player.mini_hand.length < 7)).toBe(true);
+    expect(auditCards(match)).toEqual([]);
   });
 
   it("uses the spec card ids", () => {
@@ -298,6 +326,10 @@ describe("match flow", () => {
         const seat = match.players.findIndex((_, index) => !match.discards_locked[index]);
         const drop = match.players[seat]!.full_hand.find((card) => !keep[seat]!.has(card.id));
         match = act(match, { type: "DISCARD", seat, card_id: drop!.id });
+      } else if (match.phase === "SHOWDOWN_CALL") {
+        expect(match.showdown).toBeNull();
+        expect(match.players[0]!.full_hand[0]!.visibility).toBe("OWNER_ONLY");
+        match = act(match, { type: "START_SHOWDOWN" });
       }
     }
     expect(match.showdown!.winner_seat).toBe(1);
@@ -336,5 +368,6 @@ function playOne(state: MatchState): MatchState {
     const seat = state.players.findIndex((_, index) => !state.discards_locked[index]);
     return act(state, { type: "DISCARD", seat, card_id: lowest(state.players[seat]!.full_hand).id });
   }
+  if (state.phase === "SHOWDOWN_CALL") return act(state, { type: "START_SHOWDOWN" });
   throw new Error(`Cannot step ${state.phase}`);
 }
