@@ -31,7 +31,7 @@ The suite covers hand ranking (including duplicate cards and five of a kind), th
 - Bid ties swap nobody. Suits do not break a bid.
 - The winner may hijack one face-up board card after everyone draws a third hole card. The discard back to two cards is face down, and the log does not name it.
 - After the river, the table starts the final showdown. Mini cards stay hidden. Showdown uses both hole cards plus the board. A poker tie breaks on the higher hole card. Suits do not count. The same hole cards split, and every winner banks the mini cards left in hand.
-- Winning the showdown banks the mini cards left in hand. Spending vault cards and then winning replaces them: net +1 if you did not mulligan. Losing the showdown drops every vault card you spent.
+- Winning the showdown banks the mini cards left in hand. Spending vault cards and then winning replaces them, for a net +1. A mulligan redraws the same number of mini cards and puts the old ones on the bottom of the deck, so it does not change that count. Losing the showdown drops every vault card you spent.
 - The button moves after the flop, after the turn, and again before the next deal.
 
 Five of a kind is enabled. It can only appear on a mini bid, when the board and the mini cards repeat a rank, and it ranks above a straight flush.

@@ -33,9 +33,9 @@ export function seatOrder(button: number, count: number): number[] {
 
 export function canMulligan(player: PlayerState, round: number): boolean {
   if (player.has_used_mulligan) return false;
-  if (player.mini_hand.length < 2) return false;
+  if (player.mini_hand.length < 1) return false;
   const need = 2 * (4 - round);
-  return player.mini_hand.length - 1 + player.reserve_vp_pile.length >= need;
+  return player.mini_hand.length + player.reserve_vp_pile.length >= need;
 }
 
 export function publicBoard(state: MatchState): Card[] {
@@ -210,19 +210,18 @@ function mulligan(state: MatchState, seat: number, use: boolean): void {
     if (!canMulligan(player, state.current_round)) {
       throw new Error("A mulligan would leave you short of bid cards.");
     }
-    const count = player.mini_hand.length;
-    for (const card of player.mini_hand) {
-      card.visibility = "HIDDEN";
-      state.mini_discard_pile.push(card);
-    }
+    const discarded = player.mini_hand.slice();
+    const count = discarded.length;
+    for (const card of discarded) card.visibility = "HIDDEN";
     player.mini_hand = [];
-    const drawn = drawMiniCards(state, count - 1);
+    state.mini_deck.unshift(...discarded);
+    const drawn = drawMiniCards(state, count);
     for (const card of drawn) card.visibility = "OWNER_ONLY";
     player.mini_hand = drawn;
     player.has_used_mulligan = true;
     log(
       state,
-      `${player.name} mulligans, discarding ${count} mini cards and drawing ${count - 1}.`,
+      `${player.name} mulligans, putting ${count} mini cards on the bottom of the deck and drawing ${count}.`,
       "warn",
     );
   } else {

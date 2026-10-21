@@ -46,7 +46,7 @@ export function coachLine(state: MatchState, seat: number): string {
   switch (state.phase) {
     case "MULLIGAN":
       if (!mine) return `${actor?.name ?? "The table"} is in the mulligan window.`;
-      return "Discard your mini hand and draw one fewer card, or keep it. One mulligan per match, and only if you can still bid twice in every remaining round.";
+      return "Swap your mini hand for the same number of cards, or keep it. The cards you give up go to the bottom of the deck. One mulligan per match, and only if you can still bid twice in every remaining round.";
     case "BLIND":
       if (!mine) return `${actor?.name ?? "A player"} is choosing a face-up blind.`;
       return "Play one mini card face up, from your hand or your vault. A vault card is a victory point on the table.";
@@ -131,7 +131,7 @@ export function mulliganPreview(state: MatchState, seat: number): string | null 
   if (!player || !canMulligan(player, state.current_round)) return null;
   const count = player.mini_hand.length;
   const need = 2 * (4 - state.current_round);
-  return `Discard ${count}, draw ${count - 1}. You must still cover ${need} bids with the new hand plus your vault.`;
+  return `Swap ${count} for ${count}. They go to the bottom of the deck. You still cover ${need} bids with the new hand plus your vault.`;
 }
 
 export function boardCaption(state: MatchState): string | null {

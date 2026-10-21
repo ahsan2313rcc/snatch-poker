@@ -83,7 +83,7 @@ export function Lobby({
           </p>
           <p className="mt-5 text-sm leading-6 text-[#d9d0c2]">
             {players <= 4
-              ? "One mulligan for the match. It is spent for every street after you take it."
+              ? "One mulligan for the match. It swaps the mini hand for the same number of cards, and those cards go to the bottom of the deck. It is spent for every street after you take it."
               : "Five, six, and seven seats play with no mulligan."}
           </p>
           <div className="mt-6 flex flex-wrap items-center gap-3">

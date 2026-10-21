@@ -47,7 +47,7 @@ export function RulesDialog({
             <h3 className="font-heading text-base text-[#f3e2b3]">A deal, three streets</h3>
             <p>Each player is dealt 7 mini cards. Flop, turn, and river each follow the same five steps.</p>
             <ol className="mt-2 list-decimal space-y-1 pl-5">
-              <li>Mulligan. Two, three, and four players get one mulligan for the whole match. Five, six, and seven players do not mulligan. A mulligan throws the mini hand away and draws one fewer card. The vault is never part of it, and you may only do it if you can still pay two cards for every street left.</li>
+              <li>Mulligan. Two, three, and four players get one mulligan for the whole match. Five, six, and seven players do not mulligan. A mulligan swaps the mini hand for the same number of cards. The cards you give up go to the bottom of the deck. The vault is never part of it, and you may only do it if the hand plus the vault still covers two cards for every street left.</li>
               <li>Blind. In order from the left of the button, each player plays one mini card face up, from the hand or the vault.</li>
               <li>Reveal. The flop shows three cards, the turn one, the river one.</li>
               <li>Commit. Everyone locks a second mini card face down. They flip together.</li>
@@ -77,7 +77,7 @@ export function RulesDialog({
               You must play six mini cards over a deal and you were dealt seven. Win the showdown and
               the vault grows by one, no matter how many vault cards you spent — those spent cards are
               replaced by whatever you held back. Lose, and every vault card you spent is gone. A
-              mulligan spends the extra card, so a win that deal only breaks even.
+              mulligan redraws the same number, so it does not spend that extra card.
             </p>
           </section>
           <section>

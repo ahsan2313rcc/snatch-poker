@@ -25,13 +25,11 @@ function playCheapDeal(state: MatchState, options?: { mulliganSeat?: number; spe
   let current = state;
   const startVault = current.players.map((player) => player.reserve_vp_pile.length);
   const spent = current.players.map(() => 0);
-  const mulliganed = current.players.map(() => false);
   while (current.phase !== "SHOWDOWN" && current.phase !== "MATCH_OVER") {
     const phase = current.phase;
     if (phase === "MULLIGAN") {
       const seat = current.actor_seat!;
       const use = options?.mulliganSeat === seat && canMulligan(current.players[seat]!, current.current_round);
-      if (use) mulliganed[seat] = true;
       current = act(current, use ? { type: "MULLIGAN", seat } : { type: "DECLINE_MULLIGAN", seat });
     } else if (phase === "BLIND" || phase === "COMMIT") {
       const seat = phase === "BLIND" ? current.actor_seat! : current.players.findIndex((_, index) => !current.commits_locked[index]);
@@ -60,7 +58,7 @@ function playCheapDeal(state: MatchState, options?: { mulliganSeat?: number; spe
   const winners = new Set(showdown!.winner_seats);
   expect(winners.has(showdown!.winner_seat)).toBe(true);
   for (let seat = 0; seat < current.players.length; seat++) {
-    const banked = winners.has(seat) ? 1 + (spent[seat] ?? 0) - (mulliganed[seat] ? 1 : 0) : 0;
+    const banked = winners.has(seat) ? 1 + (spent[seat] ?? 0) : 0;
     if (seat === showdown!.winner_seat) expect(showdown!.banked).toBe(banked);
     expect(showdown!.vp_after[seat]).toBe((startVault[seat] ?? 0) - (spent[seat] ?? 0) + banked);
   }
@@ -147,6 +145,7 @@ describe("match flow", () => {
     expect(match.players[0]!.reserve_vp_pile.map((card) => card.id)).toEqual(["mini_1_AS"]);
     expect(match.mini_deck.some((card) => card.id === "mini_1_AS")).toBe(false);
     expect(match.players[0]!.mini_hand).toHaveLength(7);
+    const givenUp = match.players[0]!.mini_hand.map((card) => card.id);
     let current = match;
     while (current.phase === "MULLIGAN") {
       const seat = current.actor_seat!;
@@ -154,7 +153,11 @@ describe("match flow", () => {
     }
     expect(current.players[0]!.reserve_vp_pile.map((card) => card.id)).toEqual(["mini_1_AS"]);
     expect(current.players[0]!.has_used_mulligan).toBe(true);
-    expect(current.players[0]!.mini_hand).toHaveLength(6);
+    expect(current.players[0]!.mini_hand).toHaveLength(givenUp.length);
+    expect(current.players[0]!.mini_hand.every((card) => !givenUp.includes(card.id))).toBe(true);
+    expect(current.mini_deck.slice(0, givenUp.length).map((card) => card.id)).toEqual(givenUp);
+    expect(current.mini_discard_pile.some((card) => givenUp.includes(card.id))).toBe(false);
+    expect(auditCards(current)).toEqual([]);
   });
 
   it("reshuffles the mini discard when a draw empties the deck", () => {
@@ -179,9 +182,11 @@ describe("match flow", () => {
     }));
     expect(canMulligan(player({ mini_hand: cards(7) }), 1)).toBe(true);
     expect(canMulligan(player({ mini_hand: cards(7), has_used_mulligan: true }), 1)).toBe(false);
-    expect(canMulligan(player({ mini_hand: cards(3), reserve_vp_pile: cards(3) }), 1)).toBe(false);
+    expect(canMulligan(player({ mini_hand: cards(2) }), 1)).toBe(false);
+    expect(canMulligan(player({ mini_hand: cards(3), reserve_vp_pile: cards(3) }), 1)).toBe(true);
     expect(canMulligan(player({ mini_hand: cards(3), reserve_vp_pile: cards(4) }), 1)).toBe(true);
-    expect(canMulligan(player({ mini_hand: cards(2) }), 3)).toBe(false);
+    expect(canMulligan(player({ mini_hand: cards(2) }), 3)).toBe(true);
+    expect(canMulligan(player({ mini_hand: cards(1) }), 3)).toBe(false);
     expect(canMulligan(player({ mini_hand: cards(3) }), 3)).toBe(true);
   });
 
@@ -222,11 +227,11 @@ describe("match flow", () => {
     else expect(showdown.vp_after[winner]).toBe(0);
   });
 
-  it("banks nothing extra for a winner who mulliganed", () => {
+  it("still banks the leftover mini card when the winner mulliganed", () => {
     const match = playCheapDeal(createMatch(config({ seed: 4 }), { button: 1 }), { mulliganSeat: 0 });
     expect(match.players[0]!.has_used_mulligan).toBe(true);
     const showdown = match.showdown!;
-    if (showdown.winner_seat === 0) expect(showdown.banked).toBe(0);
+    if (showdown.winner_seat === 0) expect(showdown.banked).toBe(1);
     const next = act(match, { type: "CONTINUE" });
     expect(next.players[0]!.has_used_mulligan).toBe(true);
     const reset = createMatch(config({ mulligan: "per_deal", seed: 4 }), { button: 1 });
