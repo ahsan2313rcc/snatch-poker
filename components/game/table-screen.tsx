@@ -489,8 +489,8 @@ function SeatPlate({ player, state, viewer }: { player: PlayerState; state: Matc
           />
         ))}
       </div>
-      {finals ? null : (
-        <div className="mt-1 flex min-h-8 gap-1">
+      {finals || !bid.cards.some(Boolean) ? null : (
+        <div className="mt-1 flex gap-1">
           {bid.cards.map((card, index) =>
             card ? (
               <PlayingCard
@@ -516,7 +516,7 @@ function VaultRace({ player, target, hero }: { player: PlayerState; target: numb
   return (
     <div className={`min-w-[8.5rem] flex-1 rounded-xl border px-2 py-1.5 ${hero ? "border-[#e4c576]/50 bg-[#163028]" : "border-white/10 bg-[#0c1c17]"}`}>
       <div className="flex items-baseline justify-between text-xs text-[#f6f1e7]">
-        <span className="truncate">{player.name}</span>
+        <span className="min-w-0 truncate">{player.name}</span>
         <span>
           {count}/{target}
         </span>
