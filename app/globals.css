@@ -590,6 +590,47 @@
   width: 1.05rem;
 }
 
+.seat-read {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.12rem;
+  min-width: 2rem;
+  height: 1.7rem;
+  padding: 0 0.32rem;
+  border-radius: 0.45rem;
+  background: linear-gradient(180deg, #fffdf8, #f3ead8);
+  box-shadow:
+    0 4px 8px rgb(0 0 0 / 28%),
+    inset 0 0 0 1px rgb(28 25 23 / 14%);
+  color: #1c1917;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+@media (min-width: 1024px) {
+  .seat-read {
+    min-width: 2.45rem;
+    height: 2.05rem;
+    padding: 0 0.42rem;
+    font-size: 1.28rem;
+  }
+}
+
+.seat-read-ink {
+  color: #1c1917;
+}
+
+.seat-read-red {
+  color: #b11226;
+}
+
+.seat-read-suit {
+  font-size: 0.92em;
+}
+
 /* Portrait phones keep the board and a scrolling log inside the window. */
 @media (orientation: portrait) and (max-width: 900px) {
   body:has(.table-screen) {

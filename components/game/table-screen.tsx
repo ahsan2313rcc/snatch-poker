@@ -15,9 +15,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { displaySort, roundName } from "@/lib/game/cards";
+import { cardName, displaySort, isRed, rankCode, roundName } from "@/lib/game/cards";
 import { apply } from "@/lib/game/engine";
-import type { Action, MatchState, PlayerState } from "@/lib/game/types";
+import type { Action, Card, MatchState, PlayerState } from "@/lib/game/types";
 import {
   OPPONENT_LAYOUT,
   SEAT_TINTS,
@@ -480,14 +480,14 @@ function SeatPlate({ player, state, viewer }: { player: PlayerState; state: Matc
         {finals ? "" : ` · ${player.mini_hand.length} mini`}
       </p>
       <div className={`mt-1 flex gap-1 ${miniRound ? "seat-holes-quiet" : ""}`}>
-        {player.full_hand.map((card) => (
-          <PlayingCard
-            key={card.id}
-            card={card}
-            size="seat"
-            faceDown={miniRound || !cardIsOpen(card, player.seat_index, viewer)}
-          />
-        ))}
+        {player.full_hand.map((card) => {
+          const hidden = miniRound || !cardIsOpen(card, player.seat_index, viewer);
+          return hidden ? (
+            <PlayingCard key={card.id} card={card} size="seat" faceDown />
+          ) : (
+            <SeatHoleRead key={card.id} card={card} />
+          );
+        })}
       </div>
       {finals || !bid.cards.some(Boolean) ? null : (
         <div className="mt-1 flex gap-1">
@@ -507,6 +507,16 @@ function SeatPlate({ player, state, viewer }: { player: PlayerState; state: Matc
       )}
       {finals || !bid.handName ? null : <p className="truncate text-[0.65rem] text-[#f3e2b3]">{bid.handName}</p>}
     </article>
+  );
+}
+
+function SeatHoleRead({ card }: { card: Card }) {
+  const suit = card.suit === "SPADES" ? "♠" : card.suit === "HEARTS" ? "♥" : card.suit === "CLUBS" ? "♣" : "♦";
+  return (
+    <span role="img" aria-label={cardName(card)} className={`seat-read ${isRed(card.suit) ? "seat-read-red" : "seat-read-ink"}`}>
+      <span>{rankCode(card.rank)}</span>
+      <span className="seat-read-suit">{suit}</span>
+    </span>
   );
 }
 
