@@ -491,18 +491,22 @@ function SeatPlate({ player, state, viewer }: { player: PlayerState; state: Matc
       </div>
       {finals || !bid.cards.some(Boolean) ? null : (
         <div className="mt-1 flex gap-1">
-          {bid.cards.map((card, index) =>
-            card ? (
+          {bid.cards.map((card, index) => {
+            if (!card) return null;
+            const hidden = !cardIsOpen(card, player.seat_index, viewer);
+            return hidden ? (
               <PlayingCard
                 key={`${card.id}-${index}`}
                 card={card}
                 mini
                 size="seat"
-                faceDown={!cardIsOpen(card, player.seat_index, viewer)}
+                faceDown
                 source={bid.sources[index]}
               />
-            ) : null,
-          )}
+            ) : (
+              <SeatHoleRead key={`${card.id}-${index}`} card={card} mini vault={bid.sources[index] === "RESERVE"} />
+            );
+          })}
         </div>
       )}
       {finals || !bid.handName ? null : <p className="truncate text-[0.65rem] text-[#f3e2b3]">{bid.handName}</p>}
@@ -510,10 +514,15 @@ function SeatPlate({ player, state, viewer }: { player: PlayerState; state: Matc
   );
 }
 
-function SeatHoleRead({ card }: { card: Card }) {
+function SeatHoleRead({ card, mini = false, vault = false }: { card: Card; mini?: boolean; vault?: boolean }) {
   const suit = card.suit === "SPADES" ? "♠" : card.suit === "HEARTS" ? "♥" : card.suit === "CLUBS" ? "♣" : "♦";
+  const label = `${cardName(card)}${mini ? ", mini deck" : ""}${vault ? ", from the vault" : ""}`;
   return (
-    <span role="img" aria-label={cardName(card)} className={`seat-read ${isRed(card.suit) ? "seat-read-red" : "seat-read-ink"}`}>
+    <span
+      role="img"
+      aria-label={label}
+      className={`seat-read ${isRed(card.suit) ? "seat-read-red" : "seat-read-ink"}${mini ? " seat-read-mini" : ""}${vault ? " seat-read-vault" : ""}`}
+    >
       <span>{rankCode(card.rank)}</span>
       <span className="seat-read-suit">{suit}</span>
     </span>
